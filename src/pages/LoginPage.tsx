@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Mail, ArrowRight, CheckCircle, Database, Cpu, Activity, MapPin } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, CheckCircle, Database, Cpu, Activity, MapPin, Key, Sparkles, Copy, Check } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@mplads.ai');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -24,6 +25,13 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFillDemoCreds = () => {
+    setEmail('admin@mplads.ai');
+    setPassword('admin123');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -101,15 +109,57 @@ export const LoginPage: React.FC = () => {
         {/* Right Authentication Card */}
         <div className="lg:col-span-5 p-5 sm:p-8 md:p-12 flex flex-col justify-between bg-slate-950/60">
           <div>
-            <div className="mb-6">
+            <div className="mb-5">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-800 text-[11px] mb-3">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span>Prototype Demo • Seeded Data</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Prototype Demo • Live Evaluation</span>
               </div>
               <h2 className="text-xl font-bold text-white">Officer Sign In</h2>
               <p className="text-xs text-slate-400 mt-1">
                 Access the national risk analytics & decision support console
               </p>
+            </div>
+
+            {/* Demo Credentials Helper Box */}
+            <div className="mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-blue-950/50 via-slate-900/60 to-cyan-950/40 border border-cyan-500/30 backdrop-blur-md">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-cyan-300">
+                  <Key className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Demo Login Credentials</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleFillDemoCreds}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-semibold transition-colors"
+                  title="Auto-fill credentials"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-400" />
+                      <span className="text-emerald-400">Filled</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3 h-3 text-cyan-300" />
+                      <span>Auto-fill</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center justify-between font-mono bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800 text-slate-300 text-[11px]">
+                  <span className="text-slate-500">Email:</span>
+                  <span className="text-cyan-200 select-all font-bold">admin@mplads.ai</span>
+                </div>
+                <div className="flex items-center justify-between font-mono bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-800 text-slate-300 text-[11px]">
+                  <span className="text-slate-500">Password:</span>
+                  <span className="text-cyan-200 select-all font-bold">admin123</span>
+                </div>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+                <span>Role: Central Administrator</span>
+                <span className="text-emerald-400 font-medium">Pre-filled & Ready</span>
+              </div>
             </div>
 
             {error && (
@@ -156,7 +206,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-cyan-950/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-cyan-950/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer"
               >
                 {isLoading ? (
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

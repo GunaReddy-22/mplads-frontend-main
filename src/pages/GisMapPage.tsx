@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { mapService } from '../services/api';
 import { LeafletMap } from '../components/LeafletMap';
 import { RiskBadge } from '../components/RiskBadge';
-import { MapPin, Filter, Search, Sparkles, ArrowRight, X } from 'lucide-react';
+import { MapPin, Search, Sparkles, ArrowRight, X, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const GisMapPage: React.FC = () => {
@@ -66,24 +66,40 @@ export const GisMapPage: React.FC = () => {
     setSelectedMarker(null);
   };
 
+  const hasActiveFilters = Boolean(riskFilter || categoryFilter || searchQuery);
+
+  const clearAllFilters = () => {
+    setRiskFilter('');
+    setCategoryFilter('');
+    setSearchQuery('');
+  };
+
   return (
-    <div className="space-y-3.5 sm:space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Header & Controls Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 glass-panel p-3.5 sm:p-4 rounded-2xl border border-slate-800">
-        <div>
-          <h1 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />
-            GIS Risk Spatial Intelligence
-          </h1>
-          <p className="text-[11px] sm:text-xs text-slate-400">
-            Interactive geospatial mapping with risk severity overlays
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 glass-panel p-3 sm:p-4 rounded-2xl border border-slate-800">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-base sm:text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <MapPin className="w-4 h-4 sm:w-6 sm:h-6 text-cyan-400" />
+              GIS Risk Spatial Intelligence
+            </h1>
+            <p className="text-[10px] sm:text-xs text-slate-400 hidden xs:block sm:block">
+              Interactive geospatial mapping with risk severity overlays
+            </p>
+          </div>
+
+          <div className="sm:hidden flex items-center gap-1.5">
+            <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/30">
+              {filteredMarkers.length} works
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={handleFocusHeroCluster}
-            className="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-red-950/80 hover:bg-red-900/60 border border-red-500/50 text-red-300 text-[11px] sm:text-xs font-semibold shadow-[0_0_15px_rgba(239,68,68,0.2)] transition-all flex items-center justify-center gap-1.5"
+            className="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-red-950/80 hover:bg-red-900/70 border border-red-500/50 text-red-300 text-[11px] sm:text-xs font-semibold shadow-[0_0_15px_rgba(239,68,68,0.25)] transition-all flex items-center justify-center gap-1.5 shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Demo Cluster</span>
@@ -91,31 +107,44 @@ export const GisMapPage: React.FC = () => {
 
           <button
             onClick={handleResetNationalView}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] sm:text-xs font-semibold transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] sm:text-xs font-semibold transition-colors flex items-center justify-center gap-1 shrink-0"
           >
-            Reset
+            <RotateCcw className="w-3 h-3 text-slate-400" />
+            <span>Reset</span>
           </button>
         </div>
       </div>
 
       {/* Filter Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* Search */}
         <div className="col-span-2 sm:col-span-1 relative">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search map..."
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+            placeholder="Search work ID, district..."
+            className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
+        {/* Risk Filter */}
         <div>
           <select
             value={riskFilter}
             onChange={(e) => setRiskFilter(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+            className={`w-full bg-slate-900/90 border rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-cyan-500 ${
+              riskFilter ? 'border-cyan-500/60 text-cyan-300' : 'border-slate-800 text-slate-200'
+            }`}
           >
             <option value="">All Risk Tiers</option>
             <option value="HIGH">High Risk (70–100)</option>
@@ -124,11 +153,14 @@ export const GisMapPage: React.FC = () => {
           </select>
         </div>
 
+        {/* Category Filter */}
         <div>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+            className={`w-full bg-slate-900/90 border rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-cyan-500 ${
+              categoryFilter ? 'border-cyan-500/60 text-cyan-300' : 'border-slate-800 text-slate-200'
+            }`}
           >
             <option value="">All Categories</option>
             <option value="Community Infrastructure">Community</option>
@@ -141,9 +173,21 @@ export const GisMapPage: React.FC = () => {
           </select>
         </div>
 
+        {/* Markers Count & Clear */}
         <div className="hidden sm:flex items-center justify-between px-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs">
-          <span className="text-slate-400">Markers:</span>
-          <span className="font-mono font-bold text-cyan-400">{filteredMarkers.length}</span>
+          <span className="text-slate-400">Showing:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono font-bold text-cyan-400">{filteredMarkers.length}</span>
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="text-[10px] text-red-400 hover:text-red-300 font-medium ml-1"
+                title="Clear all filters"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -156,17 +200,20 @@ export const GisMapPage: React.FC = () => {
             similarityLinks={mapData.similarityLinks}
             center={mapCenter}
             zoom={zoomLevel}
-            height="calc(100vh - 280px)"
+            height="calc(100vh - 230px)"
             onMarkerClick={(marker) => setSelectedMarker(marker)}
             selectedMarkerId={selectedMarker?.id}
           />
         </div>
 
-        {/* Selected Marker Detail Flyout Sidebar / Modal */}
+        {/* Selected Marker Detail Flyout Sidebar (Desktop) & Floating Sheet (Mobile) */}
         {selectedMarker && (
-          <div className="lg:col-span-4 glass-panel p-4 sm:p-5 rounded-2xl border border-slate-700 flex flex-col justify-between space-y-3 animate-fadeIn fixed inset-x-3 bottom-16 sm:bottom-auto sm:inset-x-auto sm:relative z-30 max-h-[80vh] overflow-y-auto">
-            <div className="space-y-3">
-              <div className="flex items-start justify-between">
+          <div className="lg:col-span-4 glass-panel p-4 sm:p-5 rounded-2xl border border-cyan-500/30 flex flex-col justify-between space-y-3 animate-slideUp fixed inset-x-2 bottom-[58px] sm:inset-x-4 sm:bottom-[68px] lg:static lg:inset-auto lg:bottom-auto z-40 max-h-[70vh] lg:max-h-[calc(100vh-230px)] overflow-y-auto bg-[#0B192C]/95 lg:bg-slate-900/80 backdrop-blur-xl shadow-2xl">
+            {/* Mobile Sheet Drag Pill Handle */}
+            <div className="lg:hidden w-10 h-1 bg-slate-600 rounded-full mx-auto mb-1" />
+
+            <div className="space-y-2.5 sm:space-y-3">
+              <div className="flex items-start justify-between gap-2">
                 <div>
                   <span className="font-mono text-xs font-bold text-cyan-400">{selectedMarker.workId}</span>
                   <h3 className="text-xs sm:text-sm font-bold text-white leading-snug mt-0.5 line-clamp-2">
@@ -175,7 +222,7 @@ export const GisMapPage: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setSelectedMarker(null)}
-                  className="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800"
+                  className="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800/80 shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -184,18 +231,18 @@ export const GisMapPage: React.FC = () => {
               {selectedMarker.isHeroCase && (
                 <div className="p-2 rounded-lg bg-red-950/60 border border-red-500/40 text-red-300 text-[11px] flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Showcase Hero Anomaly Case</span>
+                  <span className="font-semibold">Showcase Hero Anomaly Case</span>
                 </div>
               )}
 
               {/* Risk Badge & Action */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
                 <div>
-                  <span className="text-[9px] text-slate-400 uppercase font-semibold block">Risk Index</span>
+                  <span className="text-[9px] text-slate-400 uppercase font-semibold block mb-0.5">Risk Index</span>
                   <RiskBadge score={selectedMarker.riskScore} level={selectedMarker.riskLevel} size="sm" />
                 </div>
                 <div className="text-right">
-                  <span className="text-[9px] text-slate-400 uppercase font-semibold block">Action</span>
+                  <span className="text-[9px] text-slate-400 uppercase font-semibold block mb-0.5">Action</span>
                   <span className="text-[11px] font-bold text-cyan-300">
                     {selectedMarker.recommendedAction?.replace(/_/g, ' ') || 'VERIFICATION'}
                   </span>

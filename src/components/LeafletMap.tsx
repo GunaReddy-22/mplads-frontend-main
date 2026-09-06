@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import { Info, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface MarkerItem {
   id: string;
@@ -48,7 +49,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   selectedMarkerId,
   defaultBaseMap = 'streets',
 }) => {
-  const [baseMapType, setBaseMapType] = React.useState<'dark' | 'satellite' | 'streets'>(defaultBaseMap);
+  const [baseMapType, setBaseMapType] = useState<'dark' | 'satellite' | 'streets'>(defaultBaseMap);
+  const [isLegendExpanded, setIsLegendExpanded] = useState(() => window.innerWidth >= 640);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
@@ -63,6 +65,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         zoom,
         zoomControl: true,
         attributionControl: false,
+        tapHold: true,
       });
 
       // Free, high-contrast dark basemap (no API key required, no watermark)
@@ -105,6 +108,16 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         mapInstanceRef.current = null;
       }
     };
+  }, []);
+
+  // ResizeObserver to ensure Leaflet handles screen resizing & orientation changes cleanly
+  useEffect(() => {
+    if (!mapContainerRef.current || !mapInstanceRef.current) return;
+    const resizeObserver = new ResizeObserver(() => {
+      mapInstanceRef.current?.invalidateSize();
+    });
+    resizeObserver.observe(mapContainerRef.current);
+    return () => resizeObserver.disconnect();
   }, []);
 
   // Switch base layer when baseMapType changes
@@ -178,7 +191,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       // HTML popup
       const popupContent = `
-        <div style="font-family: inherit; font-size: 12px; color: #F1F5F9; min-width: 220px;">
+        <div style="font-family: inherit; font-size: 12px; color: #F1F5F9; min-width: 200px; max-width: 260px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #334155; padding-bottom: 4px;">
             <span style="font-weight: 700; color: #38BDF8; font-family: monospace;">${m.workId}</span>
             <span style="font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 10px; background: ${fillColor}33; color: ${fillColor}; border: 1px solid ${fillColor}66;">
@@ -191,12 +204,15 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <div style="color: #94A3B8; font-size: 11px; margin-bottom: 6px;">Sanction: <span style="color: #38BDF8; font-family: monospace; font-weight: 600;">₹${(m.sanctionAmount / 100000).toFixed(2)} Lakhs</span></div>
           ${m.isHeroCase ? '<div style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #FCA5A5; font-size: 10px; padding: 3px 6px; border-radius: 4px; font-weight: 700; text-align: center; margin-bottom: 4px;">⭐ SHOWCASE HERO CASE</div>' : ''}
           <div style="margin-top: 6px; text-align: center;">
-            <a href="/works/${m.workId}" style="display: block; background: #0284C7; color: white; text-decoration: none; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 11px;">View Full Work Details &rarr;</a>
+            <a href="/works/${m.workId}" style="display: block; background: #0284C7; color: white; text-decoration: none; padding: 5px 8px; border-radius: 6px; font-weight: 600; font-size: 11px;">View Work Details &rarr;</a>
           </div>
         </div>
       `;
 
-      circleMarker.bindPopup(popupContent);
+      circleMarker.bindPopup(popupContent, {
+        autoPan: true,
+        autoPanPadding: new L.Point(20, 20),
+      });
 
       circleMarker.on('click', () => {
         if (onMarkerClick) {
@@ -209,15 +225,15 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   }, [markers, similarityLinks, selectedMarkerId, onMarkerClick]);
 
   return (
-    <div className="relative rounded-xl overflow-hidden border border-slate-800 shadow-xl" style={{ height }}>
+    <div className="relative rounded-xl overflow-hidden border border-slate-800 shadow-xl w-full" style={{ height }}>
       <div ref={mapContainerRef} className="w-full h-full" />
       
       {/* Basemap Switcher */}
-      <div className="absolute top-3 right-3 z-[1000] bg-slate-950/90 backdrop-blur-md p-1 rounded-lg border border-slate-800 flex items-center gap-1 shadow-lg pointer-events-auto text-xs">
+      <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-[1000] bg-slate-950/90 backdrop-blur-md p-0.5 sm:p-1 rounded-lg border border-slate-800 flex items-center gap-0.5 sm:gap-1 shadow-lg pointer-events-auto text-[10px] sm:text-xs">
         <button
           type="button"
           onClick={() => setBaseMapType('dark')}
-          className={`px-2.5 py-1 rounded font-medium transition-colors ${
+          className={`px-2 py-1 rounded font-medium transition-colors ${
             baseMapType === 'dark'
               ? 'bg-cyan-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -228,7 +244,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         <button
           type="button"
           onClick={() => setBaseMapType('satellite')}
-          className={`px-2.5 py-1 rounded font-medium transition-colors ${
+          className={`px-2 py-1 rounded font-medium transition-colors ${
             baseMapType === 'satellite'
               ? 'bg-cyan-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -239,7 +255,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         <button
           type="button"
           onClick={() => setBaseMapType('streets')}
-          className={`px-2.5 py-1 rounded font-medium transition-colors ${
+          className={`px-2 py-1 rounded font-medium transition-colors ${
             baseMapType === 'streets'
               ? 'bg-cyan-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -249,25 +265,48 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         </button>
       </div>
 
-      {/* Map Legend Overlay */}
-      <div className="absolute bottom-3 left-3 z-[1000] bg-slate-950/90 backdrop-blur-md p-2.5 rounded-lg border border-slate-800 text-[11px] shadow-lg space-y-1.5 pointer-events-auto">
-        <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Risk Map Legend</div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-red-500 border border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-          <span className="text-slate-200">High Risk (70–100)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-amber-500 border border-amber-300" />
-          <span className="text-slate-200">Medium Risk (40–69)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-emerald-500 border border-emerald-300" />
-          <span className="text-slate-200">Low Risk (0–39)</span>
-        </div>
-        <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
-          <span className="w-4 h-0.5 border-t-2 border-dashed border-purple-400" />
-          <span className="text-purple-300 font-medium">Similarity Vector Link</span>
-        </div>
+      {/* Responsive Collapsible Map Legend Overlay */}
+      <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[1000] bg-slate-950/95 backdrop-blur-md rounded-xl border border-slate-800 text-[11px] shadow-2xl pointer-events-auto overflow-hidden transition-all duration-200 max-w-[calc(100%-20px)] sm:max-w-xs">
+        {/* Toggle Bar / Header */}
+        <button
+          type="button"
+          onClick={() => setIsLegendExpanded(!isLegendExpanded)}
+          className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 hover:bg-slate-800/50 transition-colors text-left"
+        >
+          <div className="flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[10px] sm:text-[11px] uppercase font-bold tracking-wider text-slate-300">
+              Risk Legend
+            </span>
+          </div>
+          {isLegendExpanded ? (
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          ) : (
+            <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+          )}
+        </button>
+
+        {/* Legend Content */}
+        {isLegendExpanded && (
+          <div className="p-2.5 pt-1 space-y-1.5 border-t border-slate-800/80 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500 border border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.5)] shrink-0" />
+              <span className="text-slate-200 text-[10px] sm:text-[11px]">High Risk (70–100)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-500 border border-amber-300 shrink-0" />
+              <span className="text-slate-200 text-[10px] sm:text-[11px]">Medium Risk (40–69)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500 border border-emerald-300 shrink-0" />
+              <span className="text-slate-200 text-[10px] sm:text-[11px]">Low Risk (0–39)</span>
+            </div>
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
+              <span className="w-3.5 h-0.5 border-t-2 border-dashed border-purple-400 shrink-0" />
+              <span className="text-purple-300 font-medium text-[10px] sm:text-[11px]">Similarity Vector Link</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
