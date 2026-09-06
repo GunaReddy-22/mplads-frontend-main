@@ -90,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div className="hidden md:block text-left">
             <p className="text-xs font-semibold text-white leading-tight truncate max-w-[130px]">
-              {user?.name || 'Dr. Ramesh Sharma'}
+              {user?.name || 'Guna'}
             </p>
             <p className="text-[10px] text-cyan-400 font-mono">
               Central Admin
