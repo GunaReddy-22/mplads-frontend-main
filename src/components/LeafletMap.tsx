@@ -35,6 +35,7 @@ interface LeafletMapProps {
   height?: string;
   onMarkerClick?: (marker: MarkerItem) => void;
   selectedMarkerId?: string;
+  defaultBaseMap?: 'dark' | 'satellite' | 'streets';
 }
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({
@@ -45,10 +46,13 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   height = '500px',
   onMarkerClick,
   selectedMarkerId,
+  defaultBaseMap = 'streets',
 }) => {
+  const [baseMapType, setBaseMapType] = React.useState<'dark' | 'satellite' | 'streets'>(defaultBaseMap);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
+  const baseLayersRef = useRef<{ [key: string]: L.Layer }>({});
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -61,11 +65,35 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         attributionControl: false,
       });
 
-      // CartoDB Dark Matter tiles for high-contrast government-tech UI
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd',
-      }).addTo(map);
+      // Free, high-contrast dark basemap (no API key required, no watermark)
+      const esriDarkBase = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        { maxNativeZoom: 16, maxZoom: 19 }
+      );
+      const esriDarkRef = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+        { maxNativeZoom: 16, maxZoom: 19 }
+      );
+      const darkGroup = L.layerGroup([esriDarkBase, esriDarkRef]);
+
+      const satellite = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { maxNativeZoom: 18, maxZoom: 19 }
+      );
+
+      const streets = L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom: 19 }
+      );
+
+      baseLayersRef.current = {
+        dark: darkGroup,
+        satellite,
+        streets,
+      };
+
+      const initialLayer = baseMapType === 'streets' ? streets : baseMapType === 'satellite' ? satellite : darkGroup;
+      initialLayer.addTo(map);
 
       mapInstanceRef.current = map;
       layerGroupRef.current = L.layerGroup().addTo(map);
@@ -78,6 +106,19 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       }
     };
   }, []);
+
+  // Switch base layer when baseMapType changes
+  useEffect(() => {
+    if (!mapInstanceRef.current || !baseLayersRef.current) return;
+    const map = mapInstanceRef.current;
+    Object.entries(baseLayersRef.current).forEach(([key, layer]) => {
+      if (key === baseMapType) {
+        if (!map.hasLayer(layer)) map.addLayer(layer);
+      } else {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      }
+    });
+  }, [baseMapType]);
 
   // Update center/zoom if changed
   useEffect(() => {
@@ -171,6 +212,43 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     <div className="relative rounded-xl overflow-hidden border border-slate-800 shadow-xl" style={{ height }}>
       <div ref={mapContainerRef} className="w-full h-full" />
       
+      {/* Basemap Switcher */}
+      <div className="absolute top-3 right-3 z-[1000] bg-slate-950/90 backdrop-blur-md p-1 rounded-lg border border-slate-800 flex items-center gap-1 shadow-lg pointer-events-auto text-xs">
+        <button
+          type="button"
+          onClick={() => setBaseMapType('dark')}
+          className={`px-2.5 py-1 rounded font-medium transition-colors ${
+            baseMapType === 'dark'
+              ? 'bg-cyan-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          Dark
+        </button>
+        <button
+          type="button"
+          onClick={() => setBaseMapType('satellite')}
+          className={`px-2.5 py-1 rounded font-medium transition-colors ${
+            baseMapType === 'satellite'
+              ? 'bg-cyan-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          Satellite
+        </button>
+        <button
+          type="button"
+          onClick={() => setBaseMapType('streets')}
+          className={`px-2.5 py-1 rounded font-medium transition-colors ${
+            baseMapType === 'streets'
+              ? 'bg-cyan-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          Streets
+        </button>
+      </div>
+
       {/* Map Legend Overlay */}
       <div className="absolute bottom-3 left-3 z-[1000] bg-slate-950/90 backdrop-blur-md p-2.5 rounded-lg border border-slate-800 text-[11px] shadow-lg space-y-1.5 pointer-events-auto">
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Risk Map Legend</div>
